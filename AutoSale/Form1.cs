@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -11,12 +11,15 @@ namespace AutoSale
     public partial class Form1 : Form
     {
         private Rectangle selectedArea;
+        private Rectangle valueArea;
+        private Rectangle colorArea;
         private Timer timer;
         private Timer timer2;
         private Timer timer3;
         private string? lastCapturedText;
         private string? secondText;
         private string? thirdText;
+        private const string FIXED_COLOR = "#ED4428";
 
         int count = 0;
 
@@ -41,10 +44,27 @@ namespace AutoSale
         private const byte VK_RETURN = 0x0D;
 
 
+        // Import các hàm API từ user32.dll
+        [DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int HOTKEY_ID = 1;
+        private const uint MOD_CONTROL = 0x0002; // Ctrl
+        private const uint VK_O = 0x4F; // Phím O
+
+
         public Form1()
         {
             InitializeComponent();
-           
+
+            numericUpDown1.Value = 3;
+
+            this.Load += new EventHandler(Form1_Load);
+            this.FormClosed += new FormClosedEventHandler(Form1_FormClosed);
+
             this.TopMost = true;
             this.TopLevel = true;
             selectedArea = Rectangle.Empty;
@@ -52,7 +72,36 @@ namespace AutoSale
           
             radioButton1.Checked = true;
             InitBuyLocation();
+            InitCopyValue();
+            InitColorValue();
+        }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // Đăng ký tổ hợp phím Ctrl + O
+            if (!RegisterHotKey(this.Handle, HOTKEY_ID, MOD_CONTROL, VK_O))
+            {
+                MessageBox.Show("Không thể đăng ký tổ hợp phím Ctrl + O.");
+            }
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            // Hủy đăng ký tổ hợp phím khi form đóng
+            UnregisterHotKey(this.Handle, HOTKEY_ID);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_HOTKEY = 0x0312;
+            if (m.Msg == WM_HOTKEY)
+            {
+                if (m.WParam.ToInt32() == HOTKEY_ID)
+                {
+                    timer.Stop();
+                }
+            }
+            base.WndProc(ref m);
         }
 
 
@@ -80,12 +129,12 @@ namespace AutoSale
             {
                 if (selectedArea != Rectangle.Empty)
                 {
-                    StartAutoClick("Auto.mcr");
+                    StartAutoClick("Auto1.mcr");
                     Thread.Sleep(1000);
                     SendKeys.Send("^p");
 
                     timer = new Timer();
-                    timer.Interval = 100;
+                    timer.Interval = 10;
                     timer.Tick += Timer_Tick;
                     timer.Start();
                 }
@@ -111,33 +160,34 @@ namespace AutoSale
             timer.Stop();
             count++;
 
-            var capturedText = CaptureAndReadText();
+            label4.Text = $"Run {count} times with value";
+
+            if (GetColorCode() != FIXED_COLOR)
+            {
+                timer.Start();
+                return;
+            }
+
+            var capturedText = GetTextFromClipboard();
 
             label4.Text = $"Run {count} times with value {capturedText}";
 
-            if (string.IsNullOrEmpty(capturedText))
-            {
-                timer.Start();
-                return;
-            }
+            //if (string.IsNullOrEmpty(capturedText))
+            //{
+            //    timer.Start();
+            //    return;
+            //}
 
             if (!string.IsNullOrEmpty(capturedText) && string.IsNullOrEmpty(lastCapturedText))
             {
-                //var temp = capturedText.Split(".")[0];
-                int res = 0;
-                bool isTmpInt = int.TryParse(capturedText, out res);
-                if (isTmpInt && res > 1) lastCapturedText = capturedText;
+                lastCapturedText = capturedText;
                 timer.Start();
                 return;
             }
 
-            //var convertedCapture = capturedText.Split(".")[0];
             var convertedCapture = capturedText;
 
-            //label5.Text = $"Converted: {convertedCapture}";
-
-            //IsDiff(convertedCapture)
-            if (IsDiff(convertedCapture))
+            if (IsDiffV2(convertedCapture))
             {
                 label2.Text = $"Value changed from {lastCapturedText} to {convertedCapture} at {DateTime.Now.ToString("HH:mm")}";
                 lastCapturedText = convertedCapture;
@@ -151,44 +201,49 @@ namespace AutoSale
                 if (checkBox1.Checked)
                 {
                     timer2 = new Timer();
-                    timer2.Interval = 100;
+                    timer2.Interval = 10;
                     timer2.Tick += Timer_Tick_2;
 
                     timer3 = new Timer();
-                    timer3.Interval = 100;
+                    timer3.Interval = 10;
                     timer3.Tick += Timer_Tick_3;
 
-                    RunNextAuto("Auto2.mcr");
-                    timer2.Start();
+                    if(numericUpDown1.Value >= 2)
+                    {
+                        RunNextAuto("Auto2.mcr");
+                        timer2.Start();
+                    }
+                    
                 }
-                
+
             } else
             {
+                SendKeys.Send("{ESC}");
+                SendKeys.Send("^p");
                 timer.Start();
             }
         }
 
         private void RunNextAuto(string fileName)
         {
-            Thread.Sleep(1000);
             StartAutoClick(fileName);
-            Thread.Sleep(700);
-            SendKeys.Send("^p");
-            Thread.Sleep(100);
+            Thread.Sleep(500);
             SendKeys.Send("^p");
         }
 
         private void Timer_Tick_2(object sender, EventArgs e)
         {
             timer2.Stop();
-            var capturedText = CaptureAndReadText();
-            if(!string.IsNullOrEmpty(capturedText))
+            if (GetColorCode() == FIXED_COLOR)
             {
                 EndTaskAutoClick();
                 ClickSelectedArea();
 
-                RunNextAuto("Auto3.mcr");
-                timer3.Start();
+                if(numericUpDown1.Value >= 3) {
+                    RunNextAuto("Auto3.mcr");
+                    timer3.Start();
+                }
+                
             }
             else timer2.Start();
         }
@@ -196,8 +251,7 @@ namespace AutoSale
         private void Timer_Tick_3(object sender, EventArgs e)
         {
             timer3.Stop();
-            var capturedText = CaptureAndReadText();
-            if (!string.IsNullOrEmpty(capturedText))
+            if (GetColorCode() == FIXED_COLOR)
             {
                 EndTaskAutoClick();
                 ClickSelectedArea();
@@ -205,48 +259,54 @@ namespace AutoSale
             else timer3.Start();
         }
 
-        private bool IsDiff(string capturedText)
+        //private bool IsDiff(string capturedText)
+        //{
+        //    if (string.IsNullOrEmpty(capturedText) || string.IsNullOrEmpty(lastCapturedText)) return false;
+        //    //if (capturedText == "123" || capturedText == "1" || capturedText.StartsWith("21") || capturedText.StartsWith("9") || capturedText.StartsWith("26")) return false;
+
+        //    int parseNum = 0;
+        //    bool isInt = int.TryParse(capturedText, out parseNum);
+        //    if (!isInt) return false;
+        //    if (parseNum <= 0) return false;
+
+        //    if (!string.IsNullOrEmpty(textBox1.Text))
+        //    {
+        //        var lst = textBox1.Text.Split(";");
+        //        if (lst.Contains(capturedText)) return false;
+        //    }
+
+        //    if (!string.IsNullOrEmpty(textBox2.Text))
+        //    {
+        //        int minT = 0;
+        //        bool isTextBox2Bool = int.TryParse(textBox2.Text, out minT);
+        //        if (!isTextBox2Bool) return false;
+        //        else if (parseNum < minT) return false;
+        //    }
+
+        //    if (!string.IsNullOrEmpty(textBox3.Text))
+        //    {
+        //        int maxT = 0;
+        //        bool isTextBox3Bool = int.TryParse(textBox3.Text, out maxT);
+        //        if (!isTextBox3Bool) return false;
+        //        else if (parseNum > maxT) return false;
+        //    }
+
+        //    int lengthLast = lastCapturedText.Length;
+        //    int lengthCurent = capturedText.Length;
+        //    int min = Math.Min(lengthCurent, lengthLast);
+        //    for (int i = 0; i < min; i++)
+        //    {
+        //        if (lastCapturedText[i] != capturedText[i]) return true;
+        //    }
+
+        //    return false;
+
+        //}
+
+        private bool IsDiffV2(string captureText)
         {
-            if (string.IsNullOrEmpty(capturedText) || string.IsNullOrEmpty(lastCapturedText)) return false;
-            //if (capturedText == "123" || capturedText == "1" || capturedText.StartsWith("21") || capturedText.StartsWith("9") || capturedText.StartsWith("26")) return false;
-
-            int parseNum = 0;
-            bool isInt = int.TryParse(capturedText, out parseNum);
-            if (!isInt) return false;
-            if (parseNum <= 0) return false;
-
-            if (!string.IsNullOrEmpty(textBox1.Text))
-            {
-                var lst = textBox1.Text.Split(";");
-                if (lst.Contains(capturedText)) return false;
-            }
-
-            if (!string.IsNullOrEmpty(textBox2.Text))
-            {
-                int minT = 0;
-                bool isTextBox2Bool = int.TryParse(textBox2.Text, out minT);
-                if (!isTextBox2Bool) return false;
-                else if (parseNum < minT) return false;
-            }
-
-            if (!string.IsNullOrEmpty(textBox3.Text))
-            {
-                int maxT = 0;
-                bool isTextBox3Bool = int.TryParse(textBox3.Text, out maxT);
-                if (!isTextBox3Bool) return false;
-                else if (parseNum > maxT) return false;
-            }
-
-            int lengthLast = lastCapturedText.Length;
-            int lengthCurent = capturedText.Length;
-            int min = Math.Min(lengthCurent, lengthLast);
-            for (int i = 0; i < min; i++)
-            {
-                if (lastCapturedText[i] != capturedText[i]) return true;
-            }
-
-            return false;
-
+            if (string.IsNullOrEmpty(captureText) || string.IsNullOrEmpty(lastCapturedText)) return false;
+            return captureText != lastCapturedText;
         }
 
         private void ClickSelectedArea()
@@ -263,35 +323,33 @@ namespace AutoSale
 
             Thread.Sleep(100);
 
-            //mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
-            //mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
-
             keybd_event(VK_RETURN, 0, 0, UIntPtr.Zero);
             keybd_event(VK_RETURN, 0, 2, UIntPtr.Zero);
         }
 
-        private string CaptureAndReadText()
+        private string GetTextFromClipboard()
         {
-            using (var bitmap = new Bitmap(selectedArea.Width, selectedArea.Height))
-            {
-                using (var g = Graphics.FromImage(bitmap))
-                {
-                    g.CopyFromScreen(selectedArea.Location, Point.Empty, selectedArea.Size);
-                }
-                using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
-                {
-                    using (var img = BitmapToPixConverter.Convert(bitmap))
-                    {
-                        using (var page = engine.Process(img))
-                        {
-                            var temp = page.GetText().Trim().Replace(",", "").Replace(" ", "").Replace(".", "");
-                            if (!string.IsNullOrEmpty(temp)) return temp.Substring(0, temp.Length - 1);
-                            else return temp;
+            int x = valueArea.Left + (valueArea.Width / 2);
+            int y = valueArea.Top + (valueArea.Height / 2);
 
-                        }
-                    }
-                }
+            SetForegroundWindow(this.Handle);
+
+            SetCursorPos(x, y);
+
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
+
+            SendKeys.Send("^c");
+
+            if (Clipboard.ContainsText(TextDataFormat.Text))
+            {
+                string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(" ", "").Replace(".", "");
+                int res = 0;
+                if (!int.TryParse(clipboardText, out res)) return null;
+
+                return clipboardText;
             }
+            else return null;
         }
 
         private void EndTaskAutoClick()
@@ -410,6 +468,65 @@ namespace AutoSale
                 }
             };
         }
+
+        private void InitCopyValue()
+        {
+            valueArea = new System.Drawing.Rectangle
+            {
+                Height = 39,
+                Width = 24,
+                X = 1286,
+                Y = 511,
+                Location = new System.Drawing.Point
+                {
+                    X = 1286,
+                    Y = 511
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 39,
+                    Width = 24
+                }
+            };
+        }
+
+        private void InitColorValue()
+        {
+            colorArea = new System.Drawing.Rectangle
+            {
+                Height = 10,
+                Width = 10,
+                X = 1137,
+                Y = 797,
+                Location = new System.Drawing.Point
+                {
+                    X = 1137,
+                    Y = 797
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 10,
+                    Width = 10
+                }
+            };
+        }
+
+        private string GetColorCode()
+        {
+            int x = colorArea.Left + (colorArea.Width / 2);
+            int y = colorArea.Top + (colorArea.Height / 2);
+
+            Bitmap screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
+            Graphics graphics = Graphics.FromImage(screenshot);
+            graphics.CopyFromScreen(0, 0, 0, 0, Screen.PrimaryScreen.Bounds.Size);
+
+            Color color = screenshot.GetPixel(x, y);
+
+            string hexColor = ColorTranslator.ToHtml(color);
+            return hexColor;
+        }
+
+
     }
 
     public static class BitmapToPixConverter
