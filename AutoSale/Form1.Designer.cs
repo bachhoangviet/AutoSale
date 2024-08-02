@@ -45,6 +45,9 @@
             button5 = new Button();
             radioButton1 = new RadioButton();
             radioButton2 = new RadioButton();
+            label3 = new Label();
+            textBox4 = new TextBox();
+            checkBox1 = new CheckBox();
             SuspendLayout();
             // 
             // button1
@@ -203,11 +206,39 @@
             radioButton2.UseVisualStyleBackColor = true;
             radioButton2.CheckedChanged += radioButton2_CheckedChanged;
             // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(13, 249);
+            label3.Name = "label3";
+            label3.Size = new Size(24, 15);
+            label3.TabIndex = 10;
+            label3.Text = "Init";
+            label3.Click += label6_Click;
+            // 
+            // textBox4
+            // 
+            textBox4.Location = new Point(47, 244);
+            textBox4.Name = "textBox4";
+            textBox4.Size = new Size(64, 23);
+            textBox4.TabIndex = 9;
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(141, 250);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(56, 19);
+            checkBox1.TabIndex = 16;
+            checkBox1.Text = "Recur";
+            checkBox1.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(278, 250);
+            ClientSize = new Size(276, 276);
+            Controls.Add(checkBox1);
             Controls.Add(radioButton2);
             Controls.Add(radioButton1);
             Controls.Add(button5);
@@ -215,8 +246,10 @@
             Controls.Add(button3);
             Controls.Add(label7);
             Controls.Add(label8);
+            Controls.Add(label3);
             Controls.Add(label6);
             Controls.Add(textBox3);
+            Controls.Add(textBox4);
             Controls.Add(textBox2);
             Controls.Add(textBox1);
             Controls.Add(label5);
@@ -250,5 +283,8 @@
         private Button button5;
         private RadioButton radioButton1;
         private RadioButton radioButton2;
+        private Label label3;
+        private TextBox textBox4;
+        private CheckBox checkBox1;
     }
 }

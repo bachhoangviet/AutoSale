@@ -12,7 +12,11 @@ namespace AutoSale
     {
         private Rectangle selectedArea;
         private Timer timer;
-        private string lastCapturedText;
+        private Timer timer2;
+        private Timer timer3;
+        private string? lastCapturedText;
+        private string? secondText;
+        private string? thirdText;
 
         int count = 0;
 
@@ -40,13 +44,14 @@ namespace AutoSale
         public Form1()
         {
             InitializeComponent();
+           
             this.TopMost = true;
             this.TopLevel = true;
             selectedArea = Rectangle.Empty;
+            checkBox1.Checked = true;
           
             radioButton1.Checked = true;
             InitBuyLocation();
-
 
         }
 
@@ -70,11 +75,12 @@ namespace AutoSale
         private void button2_Click(object sender, EventArgs e)
         {
             button2.Enabled = false;
+            lastCapturedText = string.IsNullOrEmpty(textBox4.Text) ? null : textBox4.Text;
             try
             {
                 if (selectedArea != Rectangle.Empty)
                 {
-                    StartAutoClick();
+                    StartAutoClick("Auto.mcr");
                     Thread.Sleep(1000);
                     SendKeys.Send("^p");
 
@@ -130,7 +136,7 @@ namespace AutoSale
 
             //label5.Text = $"Converted: {convertedCapture}";
 
-
+            //IsDiff(convertedCapture)
             if (IsDiff(convertedCapture))
             {
                 label2.Text = $"Value changed from {lastCapturedText} to {convertedCapture} at {DateTime.Now.ToString("HH:mm")}";
@@ -140,10 +146,63 @@ namespace AutoSale
                 timer = null;
 
                 ClickSelectedArea();
+
+
+                if (checkBox1.Checked)
+                {
+                    timer2 = new Timer();
+                    timer2.Interval = 100;
+                    timer2.Tick += Timer_Tick_2;
+
+                    timer3 = new Timer();
+                    timer3.Interval = 100;
+                    timer3.Tick += Timer_Tick_3;
+
+                    RunNextAuto("Auto2.mcr");
+                    timer2.Start();
+                }
+                
             } else
             {
                 timer.Start();
             }
+        }
+
+        private void RunNextAuto(string fileName)
+        {
+            Thread.Sleep(1000);
+            StartAutoClick(fileName);
+            Thread.Sleep(700);
+            SendKeys.Send("^p");
+            Thread.Sleep(100);
+            SendKeys.Send("^p");
+        }
+
+        private void Timer_Tick_2(object sender, EventArgs e)
+        {
+            timer2.Stop();
+            var capturedText = CaptureAndReadText();
+            if(!string.IsNullOrEmpty(capturedText))
+            {
+                EndTaskAutoClick();
+                ClickSelectedArea();
+
+                RunNextAuto("Auto3.mcr");
+                timer3.Start();
+            }
+            else timer2.Start();
+        }
+
+        private void Timer_Tick_3(object sender, EventArgs e)
+        {
+            timer3.Stop();
+            var capturedText = CaptureAndReadText();
+            if (!string.IsNullOrEmpty(capturedText))
+            {
+                EndTaskAutoClick();
+                ClickSelectedArea();
+            }
+            else timer3.Start();
         }
 
         private bool IsDiff(string capturedText)
@@ -248,10 +307,10 @@ namespace AutoSale
 
         }
 
-        private void StartAutoClick()
+        private void StartAutoClick(string fileName)
         {
             // Specify the path to the .mcr file
-            string macroFilePath = "Auto.mcr";
+            string macroFilePath = fileName;
 
             // Create a new process
             Process macroProcess = new Process();
@@ -291,17 +350,17 @@ namespace AutoSale
 
         private void button4_Click(object sender, EventArgs e)
         {
-            timer.Stop();
+            if(timer != null) timer.Stop();
         }
 
         private void button5_Click(object sender, EventArgs e)
         {
-            timer.Start();
+            if (timer != null) timer.Start();
         }
 
         private void button6_Click(object sender, EventArgs e)
         {
-            StartAutoClick();
+            //StartAutoClick();
         }
 
         //Buy
