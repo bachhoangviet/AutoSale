@@ -13,13 +13,16 @@ namespace AutoSale
         private Rectangle selectedArea;
         private Rectangle valueArea;
         private Rectangle colorArea;
+        private Rectangle submitBtnArea;
         private Timer timer;
         private Timer timer2;
         private Timer timer3;
         private string? lastCapturedText;
         private string? secondText;
         private string? thirdText;
-        private const string FIXED_COLOR = "#ED4428";
+        private const string FIXED_COLOR = "#F3F3EE";
+        private const string SUBMIT_BTN_COLOR = "#ED4428";
+        private const string BLACK_COLOR = "#1F1F1F";
 
         int count = 0;
 
@@ -74,6 +77,7 @@ namespace AutoSale
             InitBuyLocation();
             InitCopyValue();
             InitColorValue();
+            InitColorSubmitBtn();
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -123,8 +127,9 @@ namespace AutoSale
         //start
         private void button2_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrEmpty(textBox4.Text)) return;
             button2.Enabled = false;
-            lastCapturedText = string.IsNullOrEmpty(textBox4.Text) ? null : textBox4.Text;
+            lastCapturedText = textBox4.Text;
             try
             {
                 if (selectedArea != Rectangle.Empty)
@@ -134,7 +139,7 @@ namespace AutoSale
                     SendKeys.Send("^p");
 
                     timer = new Timer();
-                    timer.Interval = 10;
+                    timer.Interval = 100;
                     timer.Tick += Timer_Tick;
                     timer.Start();
                 }
@@ -162,7 +167,7 @@ namespace AutoSale
 
             label4.Text = $"Run {count} times with value";
 
-            if (GetColorCode() != FIXED_COLOR)
+            if (GetSubmitBtnColorCode() != SUBMIT_BTN_COLOR)
             {
                 timer.Start();
                 return;
@@ -171,19 +176,6 @@ namespace AutoSale
             var capturedText = GetTextFromClipboard();
 
             label4.Text = $"Run {count} times with value {capturedText}";
-
-            //if (string.IsNullOrEmpty(capturedText))
-            //{
-            //    timer.Start();
-            //    return;
-            //}
-
-            if (!string.IsNullOrEmpty(capturedText) && string.IsNullOrEmpty(lastCapturedText))
-            {
-                lastCapturedText = capturedText;
-                timer.Start();
-                return;
-            }
 
             var convertedCapture = capturedText;
 
@@ -201,11 +193,11 @@ namespace AutoSale
                 if (checkBox1.Checked)
                 {
                     timer2 = new Timer();
-                    timer2.Interval = 10;
+                    timer2.Interval = 100;
                     timer2.Tick += Timer_Tick_2;
 
                     timer3 = new Timer();
-                    timer3.Interval = 10;
+                    timer3.Interval = 100;
                     timer3.Tick += Timer_Tick_3;
 
                     if(numericUpDown1.Value >= 2)
@@ -219,6 +211,7 @@ namespace AutoSale
             } else
             {
                 SendKeys.Send("{ESC}");
+                Thread.Sleep(100);
                 SendKeys.Send("^p");
                 timer.Start();
             }
@@ -228,22 +221,28 @@ namespace AutoSale
         {
             StartAutoClick(fileName);
             Thread.Sleep(500);
-            SendKeys.Send("^p");
+            //SendKeys.Send("^p");
         }
 
         private void Timer_Tick_2(object sender, EventArgs e)
         {
             timer2.Stop();
-            if (GetColorCode() == FIXED_COLOR)
+            if (GetColorCode() != FIXED_COLOR)
+            {
+                SendKeys.Send("^p");
+                timer2.Start();
+            }
+            else if (GetSubmitBtnColorCode() == SUBMIT_BTN_COLOR)
             {
                 EndTaskAutoClick();
                 ClickSelectedArea();
 
-                if(numericUpDown1.Value >= 3) {
+                if (numericUpDown1.Value >= 3)
+                {
                     RunNextAuto("Auto3.mcr");
                     timer3.Start();
                 }
-                
+
             }
             else timer2.Start();
         }
@@ -251,7 +250,12 @@ namespace AutoSale
         private void Timer_Tick_3(object sender, EventArgs e)
         {
             timer3.Stop();
-            if (GetColorCode() == FIXED_COLOR)
+            if (GetColorCode() != FIXED_COLOR)
+            {
+                SendKeys.Send("^p");
+                timer3.Start();
+            }
+            else if (GetSubmitBtnColorCode() == SUBMIT_BTN_COLOR)
             {
                 EndTaskAutoClick();
                 ClickSelectedArea();
@@ -259,50 +263,7 @@ namespace AutoSale
             else timer3.Start();
         }
 
-        //private bool IsDiff(string capturedText)
-        //{
-        //    if (string.IsNullOrEmpty(capturedText) || string.IsNullOrEmpty(lastCapturedText)) return false;
-        //    //if (capturedText == "123" || capturedText == "1" || capturedText.StartsWith("21") || capturedText.StartsWith("9") || capturedText.StartsWith("26")) return false;
-
-        //    int parseNum = 0;
-        //    bool isInt = int.TryParse(capturedText, out parseNum);
-        //    if (!isInt) return false;
-        //    if (parseNum <= 0) return false;
-
-        //    if (!string.IsNullOrEmpty(textBox1.Text))
-        //    {
-        //        var lst = textBox1.Text.Split(";");
-        //        if (lst.Contains(capturedText)) return false;
-        //    }
-
-        //    if (!string.IsNullOrEmpty(textBox2.Text))
-        //    {
-        //        int minT = 0;
-        //        bool isTextBox2Bool = int.TryParse(textBox2.Text, out minT);
-        //        if (!isTextBox2Bool) return false;
-        //        else if (parseNum < minT) return false;
-        //    }
-
-        //    if (!string.IsNullOrEmpty(textBox3.Text))
-        //    {
-        //        int maxT = 0;
-        //        bool isTextBox3Bool = int.TryParse(textBox3.Text, out maxT);
-        //        if (!isTextBox3Bool) return false;
-        //        else if (parseNum > maxT) return false;
-        //    }
-
-        //    int lengthLast = lastCapturedText.Length;
-        //    int lengthCurent = capturedText.Length;
-        //    int min = Math.Min(lengthCurent, lengthLast);
-        //    for (int i = 0; i < min; i++)
-        //    {
-        //        if (lastCapturedText[i] != capturedText[i]) return true;
-        //    }
-
-        //    return false;
-
-        //}
-
+        
         private bool IsDiffV2(string captureText)
         {
             if (string.IsNullOrEmpty(captureText) || string.IsNullOrEmpty(lastCapturedText)) return false;
@@ -340,16 +301,12 @@ namespace AutoSale
             mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
 
             SendKeys.Send("^c");
+            Thread.Sleep(100);
 
-            if (Clipboard.ContainsText(TextDataFormat.Text))
-            {
-                string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(" ", "").Replace(".", "");
-                int res = 0;
-                if (!int.TryParse(clipboardText, out res)) return null;
-
-                return clipboardText;
-            }
-            else return null;
+            string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(" ", "").Replace(".", "");
+            int res = 0;
+            if (!int.TryParse(clipboardText, out res)) return null;
+            return clipboardText;
         }
 
         private void EndTaskAutoClick()
@@ -473,19 +430,19 @@ namespace AutoSale
         {
             valueArea = new System.Drawing.Rectangle
             {
-                Height = 39,
-                Width = 24,
-                X = 1286,
-                Y = 511,
+                Height = 11,
+                Width = 11,
+                X = 1122,
+                Y = 521,
                 Location = new System.Drawing.Point
                 {
-                    X = 1286,
-                    Y = 511
+                    X = 1122,
+                    Y = 521
                 },
                 Size = new System.Drawing.Size
                 {
-                    Height = 39,
-                    Width = 24
+                    Height = 11,
+                    Width = 11
                 }
             };
         }
@@ -493,6 +450,27 @@ namespace AutoSale
         private void InitColorValue()
         {
             colorArea = new System.Drawing.Rectangle
+            {
+                Height = 11,
+                Width = 8,
+                X = 336,
+                Y = 847,
+                Location = new System.Drawing.Point
+                {
+                    X = 336,
+                    Y = 847
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 11,
+                    Width = 8
+                }
+            };
+        }
+
+        private void InitColorSubmitBtn()
+        {
+            submitBtnArea = new System.Drawing.Rectangle
             {
                 Height = 10,
                 Width = 10,
@@ -515,6 +493,21 @@ namespace AutoSale
         {
             int x = colorArea.Left + (colorArea.Width / 2);
             int y = colorArea.Top + (colorArea.Height / 2);
+
+            Bitmap screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
+            Graphics graphics = Graphics.FromImage(screenshot);
+            graphics.CopyFromScreen(0, 0, 0, 0, Screen.PrimaryScreen.Bounds.Size);
+
+            Color color = screenshot.GetPixel(x, y);
+
+            string hexColor = ColorTranslator.ToHtml(color);
+            return hexColor;
+        }
+
+        private string GetSubmitBtnColorCode()
+        {
+            int x = submitBtnArea.Left + (submitBtnArea.Width / 2);
+            int y = submitBtnArea.Top + (submitBtnArea.Height / 2);
 
             Bitmap screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
             Graphics graphics = Graphics.FromImage(screenshot);
