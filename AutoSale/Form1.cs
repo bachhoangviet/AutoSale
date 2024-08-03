@@ -73,6 +73,18 @@ namespace AutoSale
             InitRegister2Location();
             InitRegister3Location();
             InitCopyValue();
+
+            timer = new Timer();
+            timer.Interval = 100;
+            timer.Tick += Timer_Tick;
+
+            timer2 = new Timer();
+            timer2.Interval = 100;
+            timer2.Tick += Timer_Tick_2;
+
+            timer3 = new Timer();
+            timer3.Interval = 100;
+            timer3.Tick += Timer_Tick_3;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -98,6 +110,8 @@ namespace AutoSale
                 if (m.WParam.ToInt32() == HOTKEY_ID)
                 {
                     timer.Stop();
+                    timer2.Stop();
+                    timer3.Stop();
                 }
             }
             base.WndProc(ref m);
@@ -157,9 +171,7 @@ namespace AutoSale
             {
                 ClickLine(registerArea);
 
-                timer = new Timer();
-                timer.Interval = 100;
-                timer.Tick += Timer_Tick;
+                
                 timer.Start();
             }
             catch (Exception ex)
@@ -199,13 +211,7 @@ namespace AutoSale
 
                 if (checkBox1.Checked)
                 {
-                    timer2 = new Timer();
-                    timer2.Interval = 100;
-                    timer2.Tick += Timer_Tick_2;
-
-                    timer3 = new Timer();
-                    timer3.Interval = 100;
-                    timer3.Tick += Timer_Tick_3;
+                   
 
                     timer2.Start();
                 }
