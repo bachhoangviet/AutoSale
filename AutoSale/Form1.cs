@@ -139,7 +139,7 @@ namespace AutoSale
                     SendKeys.Send("^p");
 
                     timer = new Timer();
-                    timer.Interval = 100;
+                    timer.Interval = 10;
                     timer.Tick += Timer_Tick;
                     timer.Start();
                 }
@@ -193,11 +193,11 @@ namespace AutoSale
                 if (checkBox1.Checked)
                 {
                     timer2 = new Timer();
-                    timer2.Interval = 100;
+                    timer2.Interval = 50;
                     timer2.Tick += Timer_Tick_2;
 
                     timer3 = new Timer();
-                    timer3.Interval = 100;
+                    timer3.Interval = 50;
                     timer3.Tick += Timer_Tick_3;
 
                     if(numericUpDown1.Value >= 2)
@@ -290,18 +290,31 @@ namespace AutoSale
 
         private string GetTextFromClipboard()
         {
+            int x1 = selectedArea.Left + (selectedArea.Width / 2);
+            int y1 = selectedArea.Top + (selectedArea.Height / 2);
+
+            SetForegroundWindow(this.Handle);
+
+            SetCursorPos(x1, y1);
+
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x1, y1, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x1, y1, 0, 0);
+
+            Thread.Sleep(50);
+
             int x = valueArea.Left + (valueArea.Width / 2);
             int y = valueArea.Top + (valueArea.Height / 2);
 
-            SetForegroundWindow(this.Handle);
+            //SetForegroundWindow(this.Handle);
 
             SetCursorPos(x, y);
 
             mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
             mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
 
+            Thread.Sleep(50);
             SendKeys.Send("^c");
-            Thread.Sleep(100);
+            Thread.Sleep(50);
 
             string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(" ", "").Replace(".", "");
             int res = 0;
