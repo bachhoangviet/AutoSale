@@ -190,23 +190,12 @@ namespace AutoSale
                 return;
             }
 
-            if (!string.IsNullOrEmpty(capturedText) && string.IsNullOrEmpty(lastCapturedText))
-            {
-                //var temp = capturedText.Split(".")[0];
-                int res = 0;
-                bool isTmpInt = int.TryParse(capturedText, out res);
-                if (isTmpInt && res > 1) lastCapturedText = capturedText;
-                timer.Start();
-                return;
-            }
-
             if (IsDiffV2(capturedText))
             {
                 label2.Text = $"Value changed from {lastCapturedText} to {capturedText} at {DateTime.Now.ToString("HH:mm")}";
                 lastCapturedText = capturedText;
 
                 ClickSelectedArea();
-
 
                 if (checkBox1.Checked)
                 {
