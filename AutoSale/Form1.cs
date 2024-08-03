@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -11,12 +11,15 @@ namespace AutoSale
     public partial class Form1 : Form
     {
         private Rectangle selectedArea;
+        private Rectangle registerArea;
+        private Rectangle register2Area;
+        private Rectangle register3Area;
+        private Rectangle valueArea;
         private Timer timer;
         private Timer timer2;
         private Timer timer3;
         private string? lastCapturedText;
-        private string? secondText;
-        private string? thirdText;
+        private string? secondCaptureText;
 
         int count = 0;
 
@@ -40,21 +43,65 @@ namespace AutoSale
         private const uint KEYEVENTF_KEYUP = 0x0002;
         private const byte VK_RETURN = 0x0D;
 
+        // Import các hàm API từ user32.dll
+        [DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int HOTKEY_ID = 1;
+        private const uint MOD_CONTROL = 0x0002; // Ctrl
+        private const uint VK_O = 0x4F; // Phím O
 
         public Form1()
         {
             InitializeComponent();
-           
+            Clipboard.Clear();
+            this.Load += new EventHandler(Form1_Load);
+            this.FormClosed += new FormClosedEventHandler(Form1_FormClosed);
+
             this.TopMost = true;
             this.TopLevel = true;
             selectedArea = Rectangle.Empty;
             checkBox1.Checked = true;
+            numericUpDown1.Value = 3;
           
             radioButton1.Checked = true;
             InitBuyLocation();
-
+            InitRegisterLocation();
+            InitRegister2Location();
+            InitRegister3Location();
+            InitCopyValue();
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // Đăng ký tổ hợp phím Ctrl + O
+            if (!RegisterHotKey(this.Handle, HOTKEY_ID, MOD_CONTROL, VK_O))
+            {
+                MessageBox.Show("Không thể đăng ký tổ hợp phím Ctrl + O.");
+            }
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            // Hủy đăng ký tổ hợp phím khi form đóng
+            UnregisterHotKey(this.Handle, HOTKEY_ID);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_HOTKEY = 0x0312;
+            if (m.Msg == WM_HOTKEY)
+            {
+                if (m.WParam.ToInt32() == HOTKEY_ID)
+                {
+                    timer.Stop();
+                }
+            }
+            base.WndProc(ref m);
+        }
 
         //chose area
         private void button1_Click(object sender, EventArgs e)
@@ -71,28 +118,49 @@ namespace AutoSale
             this.Show();
         }
 
+        private void ClickOutside()
+        {
+            int x = selectedArea.Left + (selectedArea.Width / 2);
+            int y = selectedArea.Top + (selectedArea.Height / 2);
+
+            SetForegroundWindow(this.Handle);
+
+            SetCursorPos(x, y);
+
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
+        }
+
+        private void ClickLine(Rectangle area)
+        {
+            int x = area.Left + (area.Width / 2);
+            int y = area.Top + (area.Height / 2);
+
+            SetForegroundWindow(this.Handle);
+
+            SetCursorPos(x, y);
+
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
+            Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
+        }
+
         //start
         private void button2_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrEmpty(textBox4.Text)) return;
             button2.Enabled = false;
-            lastCapturedText = string.IsNullOrEmpty(textBox4.Text) ? null : textBox4.Text;
+            lastCapturedText = textBox4.Text;
             try
             {
-                if (selectedArea != Rectangle.Empty)
-                {
-                    StartAutoClick("Auto.mcr");
-                    Thread.Sleep(1000);
-                    SendKeys.Send("^p");
+                ClickLine(registerArea);
 
-                    timer = new Timer();
-                    timer.Interval = 100;
-                    timer.Tick += Timer_Tick;
-                    timer.Start();
-                }
-                else
-                {
-                    MessageBox.Show("Please select an area first.");
-                }
+                timer = new Timer();
+                timer.Interval = 100;
+                timer.Tick += Timer_Tick;
+                timer.Start();
             }
             catch (Exception ex)
             {
@@ -111,7 +179,8 @@ namespace AutoSale
             timer.Stop();
             count++;
 
-            var capturedText = CaptureAndReadText();
+            //var capturedText = CaptureAndReadText();
+            var capturedText = GetTextFromClipboard();
 
             label4.Text = $"Run {count} times with value {capturedText}";
 
@@ -131,19 +200,10 @@ namespace AutoSale
                 return;
             }
 
-            //var convertedCapture = capturedText.Split(".")[0];
-            var convertedCapture = capturedText;
-
-            //label5.Text = $"Converted: {convertedCapture}";
-
-            //IsDiff(convertedCapture)
-            if (IsDiff(convertedCapture))
+            if (IsDiffV2(capturedText))
             {
-                label2.Text = $"Value changed from {lastCapturedText} to {convertedCapture} at {DateTime.Now.ToString("HH:mm")}";
-                lastCapturedText = convertedCapture;
-                //timer.Stop();
-                EndTaskAutoClick();
-                timer = null;
+                label2.Text = $"Value changed from {lastCapturedText} to {capturedText} at {DateTime.Now.ToString("HH:mm")}";
+                lastCapturedText = capturedText;
 
                 ClickSelectedArea();
 
@@ -158,96 +218,101 @@ namespace AutoSale
                     timer3.Interval = 100;
                     timer3.Tick += Timer_Tick_3;
 
-                    RunNextAuto("Auto2.mcr");
                     timer2.Start();
                 }
-                
+
             } else
             {
+                SendKeys.Send("{ESC}");
+                ClickLine(registerArea);
                 timer.Start();
             }
-        }
-
-        private void RunNextAuto(string fileName)
-        {
-            Thread.Sleep(1000);
-            StartAutoClick(fileName);
-            Thread.Sleep(700);
-            SendKeys.Send("^p");
-            Thread.Sleep(100);
-            SendKeys.Send("^p");
         }
 
         private void Timer_Tick_2(object sender, EventArgs e)
         {
             timer2.Stop();
-            var capturedText = CaptureAndReadText();
-            if(!string.IsNullOrEmpty(capturedText))
+            var capturedText = GetTextFromClipboard();
+            if (!string.IsNullOrEmpty(capturedText) && capturedText != lastCapturedText)
             {
-                EndTaskAutoClick();
+                secondCaptureText = capturedText;
                 ClickSelectedArea();
 
-                RunNextAuto("Auto3.mcr");
                 timer3.Start();
             }
-            else timer2.Start();
+            else
+            {
+                ClickOutside();
+                ClickLine(register2Area);
+                timer2.Start();
+            }
         }
 
         private void Timer_Tick_3(object sender, EventArgs e)
         {
             timer3.Stop();
-            var capturedText = CaptureAndReadText();
-            if (!string.IsNullOrEmpty(capturedText))
+            var capturedText = GetTextFromClipboard();
+            if (!string.IsNullOrEmpty(capturedText) && capturedText != secondCaptureText)
             {
-                EndTaskAutoClick();
                 ClickSelectedArea();
             }
-            else timer3.Start();
+            else
+            {
+                ClickOutside();
+                ClickLine(register3Area);
+                timer3.Start();
+            }
         }
 
-        private bool IsDiff(string capturedText)
+        private bool IsDiffV2(string captureText)
         {
-            if (string.IsNullOrEmpty(capturedText) || string.IsNullOrEmpty(lastCapturedText)) return false;
-            //if (capturedText == "123" || capturedText == "1" || capturedText.StartsWith("21") || capturedText.StartsWith("9") || capturedText.StartsWith("26")) return false;
-
-            int parseNum = 0;
-            bool isInt = int.TryParse(capturedText, out parseNum);
-            if (!isInt) return false;
-            if (parseNum <= 0) return false;
-
-            if (!string.IsNullOrEmpty(textBox1.Text))
-            {
-                var lst = textBox1.Text.Split(";");
-                if (lst.Contains(capturedText)) return false;
-            }
-
-            if (!string.IsNullOrEmpty(textBox2.Text))
-            {
-                int minT = 0;
-                bool isTextBox2Bool = int.TryParse(textBox2.Text, out minT);
-                if (!isTextBox2Bool) return false;
-                else if (parseNum < minT) return false;
-            }
-
-            if (!string.IsNullOrEmpty(textBox3.Text))
-            {
-                int maxT = 0;
-                bool isTextBox3Bool = int.TryParse(textBox3.Text, out maxT);
-                if (!isTextBox3Bool) return false;
-                else if (parseNum > maxT) return false;
-            }
-
-            int lengthLast = lastCapturedText.Length;
-            int lengthCurent = capturedText.Length;
-            int min = Math.Min(lengthCurent, lengthLast);
-            for (int i = 0; i < min; i++)
-            {
-                if (lastCapturedText[i] != capturedText[i]) return true;
-            }
-
-            return false;
-
+            if (string.IsNullOrEmpty(captureText) || string.IsNullOrEmpty(lastCapturedText)) return false;
+            return captureText != lastCapturedText;
         }
+
+        //private bool IsDiff(string capturedText)
+        //{
+        //    if (string.IsNullOrEmpty(capturedText) || string.IsNullOrEmpty(lastCapturedText)) return false;
+        //    //if (capturedText == "123" || capturedText == "1" || capturedText.StartsWith("21") || capturedText.StartsWith("9") || capturedText.StartsWith("26")) return false;
+
+        //    int parseNum = 0;
+        //    bool isInt = int.TryParse(capturedText, out parseNum);
+        //    if (!isInt) return false;
+        //    if (parseNum <= 0) return false;
+
+        //    if (!string.IsNullOrEmpty(textBox1.Text))
+        //    {
+        //        var lst = textBox1.Text.Split(";");
+        //        if (lst.Contains(capturedText)) return false;
+        //    }
+
+        //    if (!string.IsNullOrEmpty(textBox2.Text))
+        //    {
+        //        int minT = 0;
+        //        bool isTextBox2Bool = int.TryParse(textBox2.Text, out minT);
+        //        if (!isTextBox2Bool) return false;
+        //        else if (parseNum < minT) return false;
+        //    }
+
+        //    if (!string.IsNullOrEmpty(textBox3.Text))
+        //    {
+        //        int maxT = 0;
+        //        bool isTextBox3Bool = int.TryParse(textBox3.Text, out maxT);
+        //        if (!isTextBox3Bool) return false;
+        //        else if (parseNum > maxT) return false;
+        //    }
+
+        //    int lengthLast = lastCapturedText.Length;
+        //    int lengthCurent = capturedText.Length;
+        //    int min = Math.Min(lengthCurent, lengthLast);
+        //    for (int i = 0; i < min; i++)
+        //    {
+        //        if (lastCapturedText[i] != capturedText[i]) return true;
+        //    }
+
+        //    return false;
+
+        //}
 
         private void ClickSelectedArea()
         {
@@ -270,36 +335,62 @@ namespace AutoSale
             keybd_event(VK_RETURN, 0, 2, UIntPtr.Zero);
         }
 
-        private string CaptureAndReadText()
-        {
-            using (var bitmap = new Bitmap(selectedArea.Width, selectedArea.Height))
-            {
-                using (var g = Graphics.FromImage(bitmap))
-                {
-                    g.CopyFromScreen(selectedArea.Location, Point.Empty, selectedArea.Size);
-                }
-                using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
-                {
-                    using (var img = BitmapToPixConverter.Convert(bitmap))
-                    {
-                        using (var page = engine.Process(img))
-                        {
-                            var temp = page.GetText().Trim().Replace(",", "").Replace(" ", "").Replace(".", "");
-                            if (!string.IsNullOrEmpty(temp)) return temp.Substring(0, temp.Length - 1);
-                            else return temp;
+        //private string CaptureAndReadText()
+        //{
+        //    using (var bitmap = new Bitmap(selectedArea.Width, selectedArea.Height))
+        //    {
+        //        using (var g = Graphics.FromImage(bitmap))
+        //        {
+        //            g.CopyFromScreen(selectedArea.Location, Point.Empty, selectedArea.Size);
+        //        }
+        //        using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
+        //        {
+        //            using (var img = BitmapToPixConverter.Convert(bitmap))
+        //            {
+        //                using (var page = engine.Process(img))
+        //                {
+        //                    var temp = page.GetText().Trim().Replace(",", "").Replace(" ", "").Replace(".", "");
+        //                    if (!string.IsNullOrEmpty(temp)) return temp.Substring(0, temp.Length - 1);
+        //                    else return temp;
 
-                        }
-                    }
-                }
-            }
-        }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
 
-        private void EndTaskAutoClick()
+        private string GetTextFromClipboard()
         {
-            foreach (var process in Process.GetProcessesByName("MacroRecorder"))
-            {
-                process.Kill();
-            }
+            int x1 = selectedArea.Left + (selectedArea.Width / 2);
+            int y1 = selectedArea.Top + (selectedArea.Height / 2);
+
+            SetForegroundWindow(this.Handle);
+
+            SetCursorPos(x1, y1);
+
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x1, y1, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x1, y1, 0, 0);
+
+            Thread.Sleep(50);
+
+            int x = valueArea.Left + (valueArea.Width / 2);
+            int y = valueArea.Top + (valueArea.Height / 2);
+
+            //SetForegroundWindow(this.Handle);
+
+            SetCursorPos(x, y);
+
+            mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
+
+            Thread.Sleep(50);
+            SendKeys.Send("^c");
+            Thread.Sleep(50);
+
+            string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(" ", "").Replace(".", "");
+            int res = 0;
+            if (!int.TryParse(clipboardText, out res)) return null;
+            return clipboardText;
         }
 
         private void label6_Click(object sender, EventArgs e)
@@ -307,45 +398,17 @@ namespace AutoSale
 
         }
 
-        private void StartAutoClick(string fileName)
-        {
-            // Specify the path to the .mcr file
-            string macroFilePath = fileName;
-
-            // Create a new process
-            Process macroProcess = new Process();
-
-            // Configure the process start info
-            macroProcess.StartInfo.FileName = "cmd.exe";
-            macroProcess.StartInfo.Arguments = $"/C {macroFilePath}";
-            macroProcess.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
-            macroProcess.StartInfo.UseShellExecute = false;
-
-            try
-            {
-                // Start the process
-                macroProcess.Start();
-                // Wait for the process to exit, if needed
-                //macroProcess.WaitForExit();
-                //Console.WriteLine("Macro executed successfully.");
-            }
-            catch (Exception ex)
-            {
-                // Handle any exceptions
-                Console.WriteLine($"An error occurred: {ex.Message}");
-            }
-        }
-
         private void button3_Click_1(object sender, EventArgs e)
         {
-            //timer.Stop();
             timer = new Timer();
             lastCapturedText = null;
+            secondCaptureText = null;
             label1.Text = null;
             label2.Text = null;
             label4.Text = null;
             count = 0;
             button2.Enabled = true;
+            Clipboard.Clear();
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -407,6 +470,90 @@ namespace AutoSale
                 {
                     Height = 42,
                     Width = 102
+                }
+            };
+        }
+
+        private void InitRegisterLocation()
+        {
+            registerArea = new System.Drawing.Rectangle
+            {
+                Height = 16,
+                Width = 27,
+                X = 1431,
+                Y = 272,
+                Location = new System.Drawing.Point
+                {
+                    X = 1431,
+                    Y = 272
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 16,
+                    Width = 27
+                }
+            };
+        }
+
+        private void InitRegister2Location()
+        {
+            register2Area = new System.Drawing.Rectangle
+            {
+                Height = 16,
+                Width = 27,
+                X = 1431,
+                Y = 325,
+                Location = new System.Drawing.Point
+                {
+                    X = 1431,
+                    Y = 325
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 16,
+                    Width = 27
+                }
+            };
+        }
+
+        private void InitRegister3Location()
+        {
+            register3Area = new System.Drawing.Rectangle
+            {
+                Height = 16,
+                Width = 27,
+                X = 1431,
+                Y = 378,
+                Location = new System.Drawing.Point
+                {
+                    X = 1431,
+                    Y = 378
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 16,
+                    Width = 27
+                }
+            };
+        }
+
+        private void InitCopyValue()
+        {
+            valueArea = new System.Drawing.Rectangle
+            {
+                Height = 11,
+                Width = 11,
+                X = 1122,
+                Y = 521,
+                Location = new System.Drawing.Point
+                {
+                    X = 1122,
+                    Y = 521
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 11,
+                    Width = 11
                 }
             };
         }

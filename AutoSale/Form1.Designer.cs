@@ -48,6 +48,8 @@
             label3 = new Label();
             textBox4 = new TextBox();
             checkBox1 = new CheckBox();
+            numericUpDown1 = new NumericUpDown();
+            ((System.ComponentModel.ISupportInitialize)numericUpDown1).BeginInit();
             SuspendLayout();
             // 
             // button1
@@ -233,11 +235,19 @@
             checkBox1.Text = "Recur";
             checkBox1.UseVisualStyleBackColor = true;
             // 
+            // numericUpDown1
+            // 
+            numericUpDown1.Location = new Point(204, 247);
+            numericUpDown1.Name = "numericUpDown1";
+            numericUpDown1.Size = new Size(40, 23);
+            numericUpDown1.TabIndex = 17;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(276, 276);
+            Controls.Add(numericUpDown1);
             Controls.Add(checkBox1);
             Controls.Add(radioButton2);
             Controls.Add(radioButton1);
@@ -260,6 +270,7 @@
             Controls.Add(button1);
             Name = "Form1";
             Text = "Form1";
+            ((System.ComponentModel.ISupportInitialize)numericUpDown1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -286,5 +297,6 @@
         private Label label3;
         private TextBox textBox4;
         private CheckBox checkBox1;
+        private NumericUpDown numericUpDown1;
     }
 }
