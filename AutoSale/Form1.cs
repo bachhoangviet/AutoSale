@@ -164,9 +164,9 @@ namespace AutoSale
         //start
         private void button2_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(textBox4.Text)) return;
+            //if (string.IsNullOrEmpty(textBox4.Text)) return;
             button2.Enabled = false;
-            lastCapturedText = textBox4.Text;
+            lastCapturedText = !string.IsNullOrEmpty(textBox4.Text) ? textBox4.Text : null;
             try
             {
                 ClickLine(registerArea);
@@ -193,6 +193,7 @@ namespace AutoSale
 
             //var capturedText = CaptureAndReadText();
             var capturedText = GetTextFromClipboard();
+            if(string.IsNullOrEmpty(lastCapturedText) && !string.IsNullOrEmpty(capturedText)) lastCapturedText = capturedText;
 
             label4.Text = $"Run {count} times with value {capturedText}";
 
