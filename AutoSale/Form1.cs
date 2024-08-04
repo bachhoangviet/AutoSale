@@ -15,6 +15,7 @@ namespace AutoSale
         private Rectangle register2Area;
         private Rectangle register3Area;
         private Rectangle valueArea;
+        //private Rectangle valueSellArea;
         private Timer timer;
         private Timer timer2;
         private Timer timer3;
@@ -66,6 +67,7 @@ namespace AutoSale
             selectedArea = Rectangle.Empty;
             checkBox1.Checked = true;
             numericUpDown1.Value = 3;
+            textBox5.Text = "700";
           
             radioButton1.Checked = true;
             InitBuyLocation();
@@ -73,10 +75,8 @@ namespace AutoSale
             InitRegister2Location();
             InitRegister3Location();
             InitCopyValue();
+          
 
-            timer = new Timer();
-            timer.Interval = 100;
-            timer.Tick += Timer_Tick;
 
             timer2 = new Timer();
             timer2.Interval = 100;
@@ -164,6 +164,10 @@ namespace AutoSale
         //start
         private void button2_Click(object sender, EventArgs e)
         {
+            timer = new Timer();
+            timer.Interval = int.Parse(textBox5.Text);
+            timer.Tick += Timer_Tick;
+
             //if (string.IsNullOrEmpty(textBox4.Text)) return;
             button2.Enabled = false;
             lastCapturedText = !string.IsNullOrEmpty(textBox4.Text) ? textBox4.Text : null;
@@ -357,36 +361,43 @@ namespace AutoSale
 
         private string GetTextFromClipboard()
         {
-            int x1 = selectedArea.Left + (selectedArea.Width / 2);
-            int y1 = selectedArea.Top + (selectedArea.Height / 2);
+            try
+            {
+                int x1 = selectedArea.Left + (selectedArea.Width / 2);
+                int y1 = selectedArea.Top + (selectedArea.Height / 2);
 
-            SetForegroundWindow(this.Handle);
+                SetForegroundWindow(this.Handle);
 
-            SetCursorPos(x1, y1);
+                SetCursorPos(x1, y1);
 
-            mouse_event(MOUSEEVENTF_LEFTDOWN, x1, y1, 0, 0);
-            mouse_event(MOUSEEVENTF_LEFTUP, x1, y1, 0, 0);
+                mouse_event(MOUSEEVENTF_LEFTDOWN, x1, y1, 0, 0);
+                mouse_event(MOUSEEVENTF_LEFTUP, x1, y1, 0, 0);
 
-            Thread.Sleep(50);
+                Thread.Sleep(50);
 
-            int x = valueArea.Left + (valueArea.Width / 2);
-            int y = valueArea.Top + (valueArea.Height / 2);
+                int x = valueArea.Left + (valueArea.Width / 2);
+                int y = valueArea.Top + (valueArea.Height / 2);
 
-            //SetForegroundWindow(this.Handle);
+                //SetForegroundWindow(this.Handle);
 
-            SetCursorPos(x, y);
+                SetCursorPos(x, y);
 
-            mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
-            mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
+                mouse_event(MOUSEEVENTF_LEFTDOWN, x, y, 0, 0);
+                mouse_event(MOUSEEVENTF_LEFTUP, x, y, 0, 0);
 
-            Thread.Sleep(50);
-            SendKeys.Send("^c");
-            Thread.Sleep(50);
+                Thread.Sleep(50);
+                SendKeys.Send("^c");
+                Thread.Sleep(50);
 
-            string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(" ", "").Replace(".", "");
-            int res = 0;
-            if (!int.TryParse(clipboardText, out res)) return null;
-            return clipboardText;
+                string clipboardText = Clipboard.GetText(TextDataFormat.Text).Replace(",", "").Replace(".", "");
+                int res = 0;
+                if (!int.TryParse(clipboardText, out res)) return null;
+                return clipboardText;
+            } catch (Exception e)
+            {
+                return null;
+            }
+            
         }
 
         private void label6_Click(object sender, EventArgs e)
@@ -451,6 +462,7 @@ namespace AutoSale
 
         private void radioButton2_CheckedChanged(object sender, EventArgs e)
         {
+            InitCopySellValue();
             selectedArea = new System.Drawing.Rectangle
             {
                 Height = 42,
@@ -468,6 +480,7 @@ namespace AutoSale
                     Width = 102
                 }
             };
+
         }
 
         private void InitRegisterLocation()
@@ -545,6 +558,27 @@ namespace AutoSale
                 {
                     X = 1122,
                     Y = 521
+                },
+                Size = new System.Drawing.Size
+                {
+                    Height = 11,
+                    Width = 11
+                }
+            };
+        }
+
+        private void InitCopySellValue()
+        {
+            valueArea = new System.Drawing.Rectangle
+            {
+                Height = 11,
+                Width = 11,
+                X = 1123,
+                Y = 617,
+                Location = new System.Drawing.Point
+                {
+                    X = 1123,
+                    Y = 617
                 },
                 Size = new System.Drawing.Size
                 {

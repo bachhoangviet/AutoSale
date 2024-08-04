@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             button1 = new Button();
             button2 = new Button();
             label1 = new Label();
@@ -49,6 +50,9 @@
             textBox4 = new TextBox();
             checkBox1 = new CheckBox();
             numericUpDown1 = new NumericUpDown();
+            textBox5 = new TextBox();
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            label9 = new Label();
             ((System.ComponentModel.ISupportInitialize)numericUpDown1).BeginInit();
             SuspendLayout();
             // 
@@ -242,11 +246,34 @@
             numericUpDown1.Size = new Size(40, 23);
             numericUpDown1.TabIndex = 17;
             // 
+            // textBox5
+            // 
+            textBox5.Location = new Point(53, 277);
+            textBox5.Name = "textBox5";
+            textBox5.Size = new Size(64, 23);
+            textBox5.TabIndex = 18;
+            // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(61, 4);
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.Location = new Point(12, 280);
+            label9.Name = "label9";
+            label9.Size = new Size(39, 15);
+            label9.TabIndex = 10;
+            label9.Text = "Speed";
+            label9.Click += label6_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(276, 276);
+            ClientSize = new Size(276, 310);
+            Controls.Add(textBox5);
             Controls.Add(numericUpDown1);
             Controls.Add(checkBox1);
             Controls.Add(radioButton2);
@@ -256,6 +283,7 @@
             Controls.Add(button3);
             Controls.Add(label7);
             Controls.Add(label8);
+            Controls.Add(label9);
             Controls.Add(label3);
             Controls.Add(label6);
             Controls.Add(textBox3);
@@ -298,5 +326,8 @@
         private TextBox textBox4;
         private CheckBox checkBox1;
         private NumericUpDown numericUpDown1;
+        private TextBox textBox5;
+        private ContextMenuStrip contextMenuStrip1;
+        private Label label9;
     }
 }
