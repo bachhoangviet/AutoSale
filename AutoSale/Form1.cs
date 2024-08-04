@@ -441,6 +441,7 @@ namespace AutoSale
 
         private void InitBuyLocation()
         {
+            InitCopyValue();
             selectedArea = new System.Drawing.Rectangle
             {
                 Height = 41,
